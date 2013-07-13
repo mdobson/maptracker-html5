@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.2/leaflet.css" />
+	<!--[if lte IE 8]>
+		<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.2/leaflet.ie.css" />
+	<![endif]-->
+	<style type="text/css">
+		#map { height: 180px; }
+	</style>
+	<script src="https://apigee.com/usergrid/sdk/usergrid.0.10.5.js"></script>
+</head>
+<body>
+	<div id="map"></div>
+	<script src="http://cdn.leafletjs.com/leaflet-0.6.2/leaflet.js"></script>
+	<script>
+		var tileEndpoint = 'http://{s}.tile.cloudmade.com/acb44c3f13604118abfe6d138c67b5e3/997/256/{z}/{x}/{y}.png';
+		var attribution = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://cloudmade.com">CloudMade</a>';
+
+		var apigee = new Usergrid.Client({
+			appName:"biketrackerdev",
+			orgName:"mdobson"
+		});
+
+		var options = {
+			type: "trips",
+			uuid: "8ff8433a-e83c-11e2-8884-8fb0a48ecf90"
+		};
+
+		apigee.getEntity(options, function(err, trip){
+			if(err) {
+				alert(err);
+			} else {
+				var route = trip.get('route');
+				var firstStep = route[0];
+				var latLngs = [];
+				route.forEach(function(point){
+					console.log(point);
+					latLngs.push([point.location.latitude,point.location.longitude]);
+				});
+
+				var map = L.map('map').setView([firstStep.location.latitude,firstStep.location.longitude], 13);
+				L.tileLayer(tileEndpoint, 
+				{
+					attribution: attribution,
+					maxZoom: 18
+				}).addTo(map);
+				var polyline = L.polyline(latLngs, {color: 'red'}).addTo(map);
+			}
+			
+	
+		});
+	</script>
+</body>
+</html>
