@@ -8,53 +8,96 @@
 	<style type="text/css">
 		#map { 
 			height: 280px; 
-			margin-top:150px;
+			margin-top:50px;
 		}
 	</style>
 	<script src="https://apigee.com/usergrid/sdk/usergrid.0.10.5.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
 	<script src="routie.js"></script>
 </head>
 <body>
+	<div id="trips"></div>
 	<div id="map"></div>
 	<script src="http://cdn.leafletjs.com/leaflet-0.6.2/leaflet.js"></script>
 	<script>
 		var tileEndpoint = 'http://{s}.tile.cloudmade.com/acb44c3f13604118abfe6d138c67b5e3/997/256/{z}/{x}/{y}.png';
 		var attribution = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://cloudmade.com">CloudMade</a>';
+		$(document).ready(function(){
+			var apigee = new Usergrid.Client({
+				appName:"biketrackerdev",
+				orgName:"mdobson"
+			});
 
-		var apigee = new Usergrid.Client({
-			appName:"biketrackerdev",
-			orgName:"mdobson"
-		});
+			function getTrips(){
+				var options = {
+					type:"users",
+					username:"mdobs"
+				};
 
-		var map = L.map('map').setView([42.3314,-83.0458], 13);
-		L.tileLayer(tileEndpoint, 
-		{
-			attribution: attribution,
-			maxZoom: 18
-		}).addTo(map);
+				apigee.getEntity(options, function(err, user){
+					if (err) {
+						console.log(arguments);
+					} else {
+						user.getConnections("rode", function(err, data, entities){
+							if(err){
+								console.log(arguments);
+							} else {
+								entities.forEach(function(trip){
+									console.log(trip.uuid);
+									$("#trips").append("<a href='#trips/"+trip.uuid+"'>View Trip "+trip.uuid+"</a><br/>");
+								});
+							}
+						});
+					}
+				});
+			}
 
-		routie('trips/:uuid', function(uuid){
-			var options = {
-				type: "trips",
-				uuid: uuid
-			};
-
-			apigee.getEntity(options, function(err, trip){
-				if(err) {
-					alert(err);
-				} else {
-					var route = trip.get('route');
-					var firstStep = route[0];
-					var latLngs = [];
-					route.forEach(function(point){
-						console.log(point);
-						latLngs.push([point.location.latitude,point.location.longitude]);
-					});
-					map.setView([firstStep.location.latitude,firstStep.location.longitude], 13);
-					var polyline = L.polyline(latLngs, {color: 'red'}).addTo(map);
+			function clearLayers(){
+				for(i in map._layers) {
+					if(map._layers[i]._path != undefined) {
+					    try {
+					        map.removeLayer(map._layers[i]);
+					    }
+					    catch(e) {
+					        console.log("problem with " + e + map._layers[i]);
+					    }
+					}
 				}
-				
+			}
 
+			getTrips();
+
+			var map = L.map('map').setView([42.3314,-83.0458], 13);
+			L.tileLayer(tileEndpoint, 
+			{
+				attribution: attribution,
+				maxZoom: 18
+			}).addTo(map);
+
+			routie('trips/:uuid', function(uuid){
+				var options = {
+					type: "trips",
+					uuid: uuid
+				};
+
+				apigee.getEntity(options, function(err, trip){
+					if(err) {
+						alert(err);
+					} else {
+						clearLayers();
+						var route = trip.get('route');
+						var firstStep = route[0];
+						var latLngs = [];
+						route.forEach(function(point){
+							console.log(point);
+							latLngs.push([point.location.latitude,point.location.longitude]);
+						});
+						map.setView([firstStep.location.latitude,firstStep.location.longitude], 13);
+						var polyline = L.polyline(latLngs, {color: 'red'}).addTo(map);
+					}
+					
+
+				});
 			});
 		});
 	</script>
