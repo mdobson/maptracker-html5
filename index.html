@@ -6,9 +6,13 @@
 		<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.2/leaflet.ie.css" />
 	<![endif]-->
 	<style type="text/css">
-		#map { height: 180px; }
+		#map { 
+			height: 280px; 
+			margin-top:150px;
+		}
 	</style>
 	<script src="https://apigee.com/usergrid/sdk/usergrid.0.10.5.js"></script>
+	<script src="routie.js"></script>
 </head>
 <body>
 	<div id="map"></div>
@@ -22,33 +26,36 @@
 			orgName:"mdobson"
 		});
 
-		var options = {
-			type: "trips",
-			uuid: "8ff8433a-e83c-11e2-8884-8fb0a48ecf90"
-		};
+		var map = L.map('map').setView([42.3314,-83.0458], 13);
+		L.tileLayer(tileEndpoint, 
+		{
+			attribution: attribution,
+			maxZoom: 18
+		}).addTo(map);
 
-		apigee.getEntity(options, function(err, trip){
-			if(err) {
-				alert(err);
-			} else {
-				var route = trip.get('route');
-				var firstStep = route[0];
-				var latLngs = [];
-				route.forEach(function(point){
-					console.log(point);
-					latLngs.push([point.location.latitude,point.location.longitude]);
-				});
+		routie('trips/:uuid', function(uuid){
+			var options = {
+				type: "trips",
+				uuid: uuid
+			};
 
-				var map = L.map('map').setView([firstStep.location.latitude,firstStep.location.longitude], 13);
-				L.tileLayer(tileEndpoint, 
-				{
-					attribution: attribution,
-					maxZoom: 18
-				}).addTo(map);
-				var polyline = L.polyline(latLngs, {color: 'red'}).addTo(map);
-			}
-			
-	
+			apigee.getEntity(options, function(err, trip){
+				if(err) {
+					alert(err);
+				} else {
+					var route = trip.get('route');
+					var firstStep = route[0];
+					var latLngs = [];
+					route.forEach(function(point){
+						console.log(point);
+						latLngs.push([point.location.latitude,point.location.longitude]);
+					});
+					map.setView([firstStep.location.latitude,firstStep.location.longitude], 13);
+					var polyline = L.polyline(latLngs, {color: 'red'}).addTo(map);
+				}
+				
+
+			});
 		});
 	</script>
 </body>
